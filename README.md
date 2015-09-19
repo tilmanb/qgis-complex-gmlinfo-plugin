@@ -1,2 +1,2 @@
-# qgis-complex-gmlinfo-plugin
-QGIS Plugin for displaying the feature info of complex feature types.
+# Complex GML Info
+QGIS Plugin for displaying the featureinfo of complex GML featuretypes.

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/ComplexGmlInfo" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
