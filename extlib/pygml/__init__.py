@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-pygml for parsing GML files (ISO19139)
+pygml for parsing GML files (ISO19136)
 """
 
 __title__ = 'pygml'
