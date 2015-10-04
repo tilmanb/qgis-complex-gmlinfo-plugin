@@ -6,7 +6,7 @@ pygml for parsing GML files (ISO19136)
 
 __title__ = 'pygml'
 __author__ = 'Jürgen Weichand'
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2015 Jürgen Weichand'
 
@@ -69,10 +69,12 @@ class Dataset():
                 return [features]
             return features
 
+
+        self.__features = None
+
         # INSPIRE GML 3.2
         if 'base:SpatialDataSet' in features:
             self.__features = features['base:SpatialDataSet']['base:member']
-
 
         # WFS or GML
         if 'FeatureCollection' in features:
@@ -101,6 +103,8 @@ class Dataset():
 
 
 
+        if not self.__features:
+            raise GmlException('Unsupported GML-Container!')
 
 
         logging.debug('Container type(%s)' % str(type(self.__features)))
