@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QObject, SIGNAL, QTimer
 from PyQt4.QtGui import QAction, QIcon, QMessageBox, QTreeWidgetItem, QColor
 # Initialize Qt resources from file resources.py
 import resources
@@ -197,16 +197,33 @@ class ComplexGmlInfo:
 
 
     def about(self):
-        infoString = "<table><tr><td colspan=\"2\"><b>Complex GML Info 0.3</b></td></tr><tr><td colspan=\"2\"></td></tr><tr><td>Author:</td><td>J&uuml;rgen Weichand</td></tr><tr><td>Mail:</td><td><a href=\"mailto:juergen@weichand.de\">juergen@weichand.de</a></td></tr><tr><td>Website:</td><td><a href=\"http://www.weichand.de\">http://www.weichand.de</a></td></tr></table>"
-        QMessageBox.information(self.iface.mainWindow(), "About GML Loader", infoString)
+        infoString = "<table><tr><td colspan=\"2\"><b>Complex GML Info 0.4</b></td></tr><tr><td colspan=\"2\"></td></tr><tr><td>Author:</td><td>J&uuml;rgen Weichand</td></tr><tr><td>Mail:</td><td><a href=\"mailto:juergen@weichand.de\">juergen@weichand.de</a></td></tr><tr><td>Website:</td><td><a href=\"http://www.weichand.de\">http://www.weichand.de</a></td></tr></table>"
+        QMessageBox.information(self.iface.mainWindow(), "About Complex GML Info", infoString)
 
 
     def run(self):
         self.dlg.treeWidget.setHeaderHidden(True)
-        self.displaySelectedFeatures()
+        self.displayFeatureInfo()
+        QObject.connect(self.dlg.lineEdit, SIGNAL("textChanged(QString)"), self.resetTimer)
+        self.q = self.dlg.lineEdit.text()
+        self.timer = QTimer()
+        self.timer.setInterval(500)
+        self.timer.start()
+        self.timer.timeout.connect(self.checkUpdateFeatureInfo)
 
 
-    def displaySelectedFeatures(self):
+    def resetTimer(self):
+        self.timer.stop()
+        self.timer.start()
+
+    def checkUpdateFeatureInfo(self):
+        if not self.q == self.dlg.lineEdit.text():
+            self.q = self.dlg.lineEdit.text()
+            self.updateFeatureInfo()
+            self.timer.stop()
+            self.timer.start()
+
+    def displayFeatureInfo(self):
 
         layer = self.iface.activeLayer()
 
@@ -224,7 +241,11 @@ class ComplexGmlInfo:
 
         if not filename in self.cache:
             logging.debug('%s not cached yet!' % filename)
-            self.cache[filename] = pygml.Dataset(filename)
+            try:
+                self.cache[filename] = pygml.Dataset(filename)
+            except pygml.GmlException as e:
+                QMessageBox.critical(self.dlg, 'Error', e.message)
+                return
 
         gml = self.cache[filename]
 
@@ -245,6 +266,7 @@ class ComplexGmlInfo:
         self.fill_widget(self.dlg.treeWidget, features)
 
 
+    # based on http://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
     def fill_item(self, item, value):
         item.setExpanded(True)
         if type(value) is OrderedDict:
@@ -286,12 +308,44 @@ class ComplexGmlInfo:
         widget.clear()
         self.fill_item(widget.invisibleRootItem(), value)
 
+
+
+    # colorize attributes
     def getQColor(self, text):
         for indicator in ['nil']:
             if indicator in text.lower():
                 return QColor('lightgrey')
-        for indicator in ['gml:id', 'localid', 'identifier', 'xlink:href', 'xlink:type', 'namespace', 'codespace', '#text']:
+        for indicator in ['gml:id', 'localid', 'identifier', 'xlink:href', 'xlink:type', 'namespace', 'codespace']:
             if indicator in text.lower():
                 return QColor('darkslategray')
         return QColor('red')
 
+
+    # search inside QTreeWidget
+    def updateFeatureInfo(self):
+        self.displayFeatureInfo()
+        query = unicode(self.dlg.lineEdit.text())
+        if query and len(query) >= 3:
+            root_item = self.dlg.treeWidget.invisibleRootItem()
+            self.removeChildren(root_item, query)
+
+    def removeChildren(self, item, query):
+        if item:
+            child_count = item.childCount()
+            if child_count > 0:
+                for i in range(child_count):
+                    self.removeChildren(item.child(i), query)
+
+            else:
+                path = self.buildPath(item)
+                if not query.lower() in self.buildPath(item).lower():
+                    parent = item.parent()
+                    if parent:
+                        parent.removeChild(item)
+                        self.removeChildren(parent, query)
+
+    def buildPath(self, item):
+        text = item.text(0)
+        if item.parent():
+            text += ' > ' + self.buildPath(item.parent())
+        return text
