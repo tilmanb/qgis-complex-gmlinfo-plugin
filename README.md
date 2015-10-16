@@ -2,7 +2,7 @@
 QGIS Plugin for displaying the featureinfo of complex GML featuretypes.
 
 
-## Install
+## Installation
 
 * the plugin can be installed using the QGIS Plugin Manager
 * be sure to enable `install experimental plugins` first
